@@ -53,7 +53,7 @@ class Captcha
      *
      * @var array
      */
-    protected $textArea = [0, 0];
+    protected $textArea = array(0, 0);
 
     /**
      * The space in pixel that between two character neighbours.
@@ -67,21 +67,21 @@ class Captcha
      *
      * @var array
      */
-    protected $charAngleRange = [];
+    protected $charAngleRange = array();
 
     /**
      * Array of each character angle.
      *
      * @var array
      */
-    protected $charAngleSequences = [];
+    protected $charAngleSequences = array();
 
     /**
      * Array of horizontal position about each character.
      *
      * @var array
      */
-    protected $charCoordinateSequences = [];
+    protected $charCoordinateSequences = array();
 
     /**
      * Grade of interference.
@@ -170,7 +170,7 @@ class Captcha
     {
         $this->setCharAngleSequences();
 
-        $widths = $heights = [];
+        $widths = $heights = array();
         $promise = $this->charMargin;
         for ($i = 0; $i < $this->length; $i++) {
             list($lbx, $lby, $rbx, $rby, $rtx, $rty, $ltx, $lty) = imagettfbbox(
@@ -179,13 +179,13 @@ class Captcha
                 $this->font,
                 $this->captcha[$i]
             );
-            $width = max([$lbx, $rbx, $rtx, $ltx]) - min([$lbx, $rbx, $rtx, $ltx]);
+            $width = max(array($lbx, $rbx, $rtx, $ltx)) - min(array($lbx, $rbx, $rtx, $ltx));
             $widths[] = $width + $i * $this->charMargin;
-            $heights[] = $height = max([$lby, $rby, $rty, $lty]) - min([$lby, $rby, $rty, $lty]);
+            $heights[] = $height = max(array($lby, $rby, $rty, $lty)) - min(array($lby, $rby, $rty, $lty));
             $promise = $promise + $width;
             $this->charCoordinateSequences[] = $promise;
         }
-        $this->textArea = [array_sum($widths), max($heights)];
+        $this->textArea = array(array_sum($widths), max($heights));
     }
 
     /**

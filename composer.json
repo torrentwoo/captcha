@@ -1,0 +1,24 @@
+{
+    "name": "woogoo/captcha",
+    "description": "A simple graphic captcha generator",
+    "keywords": [
+        "captcha",
+        "graphic captcha"
+    ],
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Torrent Woo",
+            "email": "torrent.woo@qq.com"
+        }
+    ],
+    "require": {
+        "php": ">=4.3.2",
+        "ext-gd": "*"
+    },
+    "autoload": {
+        "psr-4": {
+            "WooGoo\\": "src/"
+        }
+    }
+}

@@ -21,6 +21,13 @@ class Captcha
     protected $height;
 
     /**
+     * Types of image that can be output.
+     *
+     * @var array
+     */
+    protected $capableOf = array();
+
+    /**
      * The captcha string which contains random characters combination.
      *
      * @var string
@@ -42,11 +49,11 @@ class Captcha
     protected $font;
 
     /**
-     * Font size.
+     * The font size in points.
      *
      * @var int
      */
-    protected $fontSize = 14; // pixel in GD1, pt in GD2
+    protected $fontSize = 14;
 
     /**
      * Array of area occupied by text, made from width, height.
@@ -54,6 +61,13 @@ class Captcha
      * @var array
      */
     protected $textArea = array(0, 0);
+
+    /**
+     * Array set of the desired colors for the text.
+     *
+     * @var mixed
+     */
+    protected $textColor = array();
 
     /**
      * The space in pixel that between two character neighbours.
@@ -88,7 +102,7 @@ class Captcha
      *
      * @var string
      */
-    protected $interference = 'none'; // other options: low, medium, high
+    protected $interference = 'none';
 
     /**
      * ImageCaptcha constructor.
@@ -114,6 +128,20 @@ class Captcha
         try {
             if (! extension_loaded('gd')) {
                 throw new Exception('The GD extension is required.');
+            }
+            foreach (gd_info() as $item => $value) {
+                if ($item === 'FreeType Support' && ! $value) {
+                    throw new Exception('The FreeType Support is not installed.');
+                }
+                if ($item === 'GIF Create Support' && $value) {
+                    $this->capableOf[] = 'gif';
+                }
+                if (($item === 'JPEG Support' || $item === 'JPG Support') && $value) {
+                    array_push($this->capableOf, 'jpeg', 'jpg');
+                }
+                if ($item === 'PNG Support' && $value) {
+                    $this->capableOf[] = 'png';
+                }
             }
             if (empty($font)) {
                 throw new Exception('A TrueType font must be specified.');
@@ -216,7 +244,12 @@ class Captcha
         imageantialias($canvas, true);
 
         for ($i = 0; $i < $this->length; $i++) {
-            $textColor = imagecolorallocate($canvas, mt_rand(0, 255), mt_rand(0, 255), mt_rand(0, 255));
+            if (empty($this->textColor)) {
+                $textColor = imagecolorallocate($canvas, mt_rand(0, 255), mt_rand(0, 255), mt_rand(0, 255));
+            } else {
+                list($red, $green, $blue) = $this->textColor[mt_rand(0, count($this->textColor) - 1)];
+                $textColor = imagecolorallocate($canvas, $red, $green, $blue);
+            }
             imagettftext(
                 $canvas,
                 $this->fontSize,
@@ -310,6 +343,64 @@ class Captcha
     }
 
     /**
+     * Set the desired colors for the captcha text.
+     *
+     * @param  mixed
+     * @return void
+     */
+    public function allocateTextColor()
+    {
+        foreach (func_get_args() as $color) {
+            if ($this->verifyHexColor($color)) {
+                $this->textColor[] = $this->parseHexColorToRGBColor($color);
+            }
+        }
+    }
+
+    /**
+     * Verify a color code is hexadecimal.
+     *
+     * @param  mixed  $colorCode
+     * @return bool
+     */
+    protected function verifyHexColor($colorCode)
+    {
+        if (is_string($colorCode)) {
+            $colorCode = ltrim($colorCode, '#');
+
+            if (ctype_xdigit($colorCode) && (strlen($colorCode) === 6 || strlen($colorCode) === 3)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Convert a hexadecimal color code to an array represented by RGB index.
+     *
+     * @param  string  $colorCode
+     * @return array
+     */
+    protected function parseHexColorToRGBColor($colorCode)
+    {
+        $hex = ltrim($colorCode, '#');
+        $len = strlen($hex);
+
+        if ($len === 6) { // #000000
+            $rgb[] = hexdec(substr($hex, 0, 2));
+            $rgb[] = hexdec(substr($hex, 2, 2));
+            $rgb[] = hexdec(substr($hex, 4, 2));
+        } else { // shorthand color
+            $rgb[] = hexdec(str_repeat(substr($hex, 0, 1), 2));
+            $rgb[] = hexdec(str_repeat(substr($hex, 1, 1), 2));
+            $rgb[] = hexdec(str_repeat(substr($hex, 2, 1), 2));
+        }
+
+        return $rgb;
+    }
+
+    /**
      * Get the raw captcha string.
      *
      * @return string
@@ -326,9 +417,14 @@ class Captcha
      * @param  int      $minHeight
      * @param  string   $outputType
      * @return string
+     * @throws \Exception
      */
     public function getGraphicCaptcha($minWidth = 88, $minHeight = 28, $outputType = 'png')
     {
+        if (! in_array($outputType, $this->capableOf)) {
+            throw new Exception(strtoupper($outputType) . ' support for GD extension is not included');
+        }
+
         $this->width = max((int) $minWidth, $this->textArea[0]);
         $this->height = max((int) $minHeight, $this->textArea[1]);
 
